@@ -1,7 +1,7 @@
 import os
 
-# Base directory
-BASE_DIR = r"C:\Users\cjele\Desktop\ATTENDANCE CHECKER FINAL PROJECT"
+# Base directory - dynamically gets the project directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Paths
 HAARCASCADE_PATH = os.path.join(BASE_DIR, "haarcascade_frontalface_default.xml")
