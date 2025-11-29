@@ -177,6 +177,11 @@ For questions or issues, please:
 - Contact the development team
 - Check the troubleshooting section above
 
+## Author
+
+**Cj Eleazar** - *Project Lead & Developer*  
+GitHub: [@ghettongtigatira](https://github.com/ghettongtigatira)
+
 ---
 
 **Developed by BSCS 3B Students** | **Built with Python & OpenCV**
