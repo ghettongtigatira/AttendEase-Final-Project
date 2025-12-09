@@ -13,24 +13,36 @@ from frontend.theme import (
 )
 
 class ManageSubjectsWindow:
-    def __init__(self, base_dir, attendance_path, student_details_path):
+    def __init__(self, base_dir, attendance_path, student_details_path, main_window=None):
         self.base_dir = base_dir
         self.attendance_path = attendance_path
         self.student_details_path = student_details_path
         self.handler = AttendanceHandler(attendance_path, student_details_path)
+        self.main_window = main_window
 
         # Use Toplevel instead of a new Tk root to avoid variable scope issues
         self.window = tk.Toplevel()
         self.window.title(f"{APP_BRAND} - Manage Subjects")
-        self.window.geometry("720x480")
         self.window.configure(background=PRIMARY_BG)
-        self.window.resizable(0, 0)
+        self.window.overrideredirect(True)  # Borderless
+        # Set fullscreen manually (get screen dimensions)
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        self.window.geometry(f"{screen_width}x{screen_height}+0+0")
+        self.window.bind('<Escape>', lambda e: self.go_back())  # Back on Escape
+        self.window.protocol("WM_DELETE_WINDOW", self.go_back)
 
         self.subject_var = tk.StringVar()
         self.new_subject_var = tk.StringVar()
 
         self.setup_ui()
         self.load_subjects()
+    
+    def go_back(self):
+        """Go back to main window"""
+        self.window.destroy()
+        if self.main_window:
+            self.main_window.window.deiconify()
 
     def setup_ui(self):
         # Apply theme styles
@@ -42,59 +54,88 @@ class ManageSubjectsWindow:
         header.pack(fill=X)
         tk.Label(header, text="📚  Manage Subjects", bg=ACCENT_BG, fg=PRIMARY_FG, font=TITLE_FONT).pack(side=LEFT, padx=PADDING, pady=PADDING)
         tk.Label(header, text="Add or remove subjects", bg=ACCENT_BG, fg="#9fb5d9", font=SUBTITLE_FONT).pack(side=LEFT, padx=PADDING, pady=PADDING)
-
-        body = tk.Frame(self.window, bg=PRIMARY_BG)
-        body.pack(fill=BOTH, expand=True, padx=PADDING, pady=PADDING)
-
-        left = tk.Frame(body, bg=PRIMARY_BG)
-        left.pack(side=LEFT, fill=BOTH, expand=True)
-
-        tk.Label(left, text="Existing Subjects", bg=PRIMARY_BG, fg=ACCENT_FG, font=LABEL_FONT).pack(anchor=W, padx=PADDING, pady=(PADDING, 6))
-        self.subject_combo = ttk.Combobox(left, textvariable=self.subject_var, state="readonly", width=28)
-        self.subject_combo.pack(anchor=W, padx=PADDING, pady=(0, PADDING))
-        self.subject_combo.bind("<<ComboboxSelected>>", self.on_select_subject)
-
-        btns = tk.Frame(left, bg=PRIMARY_BG)
-        btns.pack(anchor=W, padx=PADDING, pady=(0, PADDING))
-
-        self.remove_btn = tk.Button(
-            btns, text="Remove Subject", command=self.on_remove_subject,
-            bd=0, font=BUTTON_FONT, bg=DANGER_BG, fg="white",
-            activebackground=ACCENT_BG, activeforeground=ACCENT_FG,
+        
+        # Back button
+        back_btn = tk.Button(
+            header,
+            text="← Back",
+            command=self.go_back,
+            bd=0,
+            font=("Verdana", 12, "bold"),
+            bg=ACCENT_BG,
+            fg=PRIMARY_FG,
+            padx=16,
+            pady=6,
+            cursor="hand2"
         )
-        self.remove_btn.pack(side=LEFT, padx=(0, PADDING))
-        self._add_button_hover(self.remove_btn, DANGER_BG, darken=True)
+        back_btn.pack(side=RIGHT, padx=PADDING, pady=PADDING)
+        self._add_button_hover(back_btn, ACCENT_BG)
 
+        # Center container
+        center_frame = tk.Frame(self.window, bg=PRIMARY_BG)
+        center_frame.pack(expand=True, fill=BOTH)
+        
+        # Main card (centered)
+        card = tk.Frame(center_frame, bg=CARD_BG, padx=50, pady=35)
+        card.place(relx=0.5, rely=0.45, anchor=CENTER)
+        
+        # Card title
+        tk.Label(card, text="Subject Management", bg=CARD_BG, fg=PRIMARY_FG, font=("Verdana", 20, "bold")).pack(pady=(0, 25))
+        
+        # Two column layout
+        columns = tk.Frame(card, bg=CARD_BG)
+        columns.pack(fill=X)
+        
+        # Left column - Existing subjects
+        left = tk.Frame(columns, bg=CARD_BG)
+        left.pack(side=LEFT, padx=(0, 50))
+        
+        tk.Label(left, text="Existing Subjects", bg=CARD_BG, fg=ACCENT_FG, font=SUBTITLE_FONT).pack(anchor=W, pady=(0, 10))
+        self.subject_combo = ttk.Combobox(left, textvariable=self.subject_var, state="readonly", width=25, font=("Verdana", 11))
+        self.subject_combo.pack(anchor=W, pady=(0, 15))
+        self.subject_combo.bind("<<ComboboxSelected>>", self.on_select_subject)
+        
+        btns = tk.Frame(left, bg=CARD_BG)
+        btns.pack(anchor=W)
+        
+        self.remove_btn = tk.Button(
+            btns, text="🗑️ Remove", command=self.on_remove_subject,
+            bd=0, font=("Verdana", 11, "bold"), bg=DANGER_BG, fg="white",
+            padx=16, pady=8, cursor="hand2"
+        )
+        self.remove_btn.pack(side=LEFT, padx=(0, 10))
+        self._add_button_hover(self.remove_btn, DANGER_BG, darken=True)
+        
         open_btn = tk.Button(
-            btns, text="Open Folder", command=self.on_open_folder,
-            bd=0, font=BUTTON_FONT, bg=CARD_BG, fg=ACCENT_FG,
-            activebackground=ACCENT_BG, activeforeground=ACCENT_FG,
+            btns, text="📂 Open Folder", command=self.on_open_folder,
+            bd=0, font=("Verdana", 11, "bold"), bg=PRIMARY_FG, fg=PRIMARY_BG,
+            padx=16, pady=8, cursor="hand2"
         )
         open_btn.pack(side=LEFT)
-        self._add_button_hover(open_btn, CARD_BG)
-
-        # Add new subject
-        right = tk.Frame(body, bg=PRIMARY_BG)
-        right.pack(side=RIGHT, fill=BOTH, expand=True)
-
-        tk.Label(right, text="Add New Subject", bg=PRIMARY_BG, fg=ACCENT_FG, font=LABEL_FONT).pack(anchor=W, padx=PADDING, pady=(PADDING, 6))
-        self.new_subject_entry = tk.Entry(right, bd=0, bg=INPUT_BG, fg=INPUT_FG, font=("Verdana", 14, "bold"), relief=FLAT, width=24, textvariable=self.new_subject_var)
-        self.new_subject_entry.pack(anchor=W, padx=PADDING, pady=(0, 6))
-
+        self._add_button_hover(open_btn, PRIMARY_FG)
+        
+        # Right column - Add new subject
+        right = tk.Frame(columns, bg=CARD_BG)
+        right.pack(side=LEFT)
+        
+        tk.Label(right, text="Add New Subject", bg=CARD_BG, fg=ACCENT_FG, font=SUBTITLE_FONT).pack(anchor=W, pady=(0, 10))
+        self.new_subject_entry = tk.Entry(right, bd=0, bg=INPUT_BG, fg=INPUT_FG, font=("Verdana", 12), relief=FLAT, width=22, textvariable=self.new_subject_var, insertbackground=INPUT_FG)
+        self.new_subject_entry.pack(anchor=W, pady=(0, 15), ipady=8)
+        
         add_btn = tk.Button(
-            right, text="Add Subject", command=self.on_add_subject,
-            bd=0, font=BUTTON_FONT, bg=ACCENT_BG, fg=ACCENT_FG,
-            activebackground=CARD_BG, activeforeground=PRIMARY_FG,
+            right, text="➕ Add Subject", command=self.on_add_subject,
+            bd=0, font=("Verdana", 11, "bold"), bg=PRIMARY_FG, fg=PRIMARY_BG,
+            padx=16, pady=8, cursor="hand2"
         )
-        add_btn.pack(anchor=W, padx=PADDING, pady=(0, PADDING))
-        self._add_button_hover(add_btn, ACCENT_BG)
-
-        # Status
+        add_btn.pack(anchor=W)
+        self._add_button_hover(add_btn, PRIMARY_FG)
+        
+        # Status bar at bottom of card
         self.status = tk.Label(
-            self.window, text="", bg=CARD_BG, fg=PRIMARY_FG,
-            font=("Verdana", 12, "bold"), relief=FLAT, height=3
+            card, text="Select a subject to manage", bg=INPUT_BG, fg=PRIMARY_FG,
+            font=("Verdana", 11), relief=FLAT, height=2, anchor=W, padx=12
         )
-        self.status.pack(fill=X, padx=PADDING, pady=(0, PADDING))
+        self.status.pack(fill=X, pady=(25, 0))
 
     def load_subjects(self):
         subjects, _ = self.handler.list_subjects()
