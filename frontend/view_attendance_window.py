@@ -14,18 +14,30 @@ from frontend.theme import (
 )
 
 class ViewAttendanceWindow:
-    def __init__(self, base_dir, attendance_path):
+    def __init__(self, base_dir, attendance_path, main_window=None):
         self.base_dir = base_dir
         self.attendance_path = attendance_path
         self.attendance_handler = AttendanceHandler(attendance_path, "")
+        self.main_window = main_window
         
-        self.window = tk.Tk()
+        self.window = tk.Toplevel()
         self.window.title(f"{APP_BRAND} - View Attendance")
-        self.window.geometry("980x640")
-        self.window.resizable(0, 0)
         self.window.configure(background=PRIMARY_BG)
+        self.window.overrideredirect(True)  # Borderless
+        # Set fullscreen manually (get screen dimensions)
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        self.window.geometry(f"{screen_width}x{screen_height}+0+0")
+        self.window.bind('<Escape>', lambda e: self.go_back())  # Back on Escape
+        self.window.protocol("WM_DELETE_WINDOW", self.go_back)
         
         self.setup_ui()
+    
+    def go_back(self):
+        """Go back to main window"""
+        self.window.destroy()
+        if self.main_window:
+            self.main_window.window.deiconify()
     
     def setup_ui(self):
         """Setup view attendance UI"""
@@ -39,80 +51,97 @@ class ViewAttendanceWindow:
         tk.Label(header, text="📑  View Attendance Records", bg=ACCENT_BG, fg=PRIMARY_FG, font=TITLE_FONT).pack(side=LEFT, padx=PADDING, pady=PADDING)
         tk.Label(header, text="Select subject to see summary", bg=ACCENT_BG, fg="#9fb5d9", font=SUBTITLE_FONT).pack(side=LEFT, padx=PADDING, pady=PADDING)
         
-        # Subject label and input (aligned neatly)
-        top = tk.Frame(self.window, bg=PRIMARY_BG)
-        top.pack(fill=X, padx=PADDING, pady=PADDING)
-        tk.Label(top, text="Subject", bg=PRIMARY_BG, fg=ACCENT_FG, font=LABEL_FONT).pack(side=LEFT, padx=(0,8))
-        # Dropdown for subjects
+        # Back button
+        back_btn = tk.Button(
+            header,
+            text="← Back",
+            command=self.go_back,
+            bd=0,
+            font=("Verdana", 12, "bold"),
+            bg=ACCENT_BG,
+            fg=PRIMARY_FG,
+            padx=16,
+            pady=6,
+            cursor="hand2"
+        )
+        back_btn.pack(side=RIGHT, padx=PADDING, pady=PADDING)
+        self._add_button_hover(back_btn, ACCENT_BG)
+        
+        # Main content area
+        content = tk.Frame(self.window, bg=PRIMARY_BG)
+        content.pack(fill=BOTH, expand=True, padx=PADDING*3, pady=PADDING)
+        
+        # Top control bar in a card
+        control_card = tk.Frame(content, bg=CARD_BG, padx=20, pady=15)
+        control_card.pack(fill=X, pady=(0, PADDING))
+        
+        # Subject selection row
+        tk.Label(control_card, text="Subject:", bg=CARD_BG, fg=ACCENT_FG, font=LABEL_FONT).pack(side=LEFT, padx=(0, 10))
         from tkinter import ttk
         self.subject_var = tk.StringVar()
-        self.subject_combo = ttk.Combobox(top, textvariable=self.subject_var, state="readonly", width=24)
-        self.subject_combo.pack(side=LEFT)
+        self.subject_combo = ttk.Combobox(control_card, textvariable=self.subject_var, state="readonly", width=28, font=("Verdana", 11))
+        self.subject_combo.pack(side=LEFT, padx=(0, 20))
         self.subject_combo.bind("<<ComboboxSelected>>", self.on_subject_select)
-        # Dropdown-only selection; removed manual entry for simplicity
         
-        # Buttons frame (clean, no heavy borders; use pack for consistent layout)
-        button_frame = tk.Frame(self.window, bg=PRIMARY_BG)
-        button_frame.pack(fill=X, padx=PADDING, pady=(0, PADDING))
-        
+        # Action buttons in control bar
         view_btn = tk.Button(
-            button_frame,
-            text="View Attendance",
+            control_card,
+            text="📊 View",
             command=self.view_attendance,
             bd=0,
-            font=BUTTON_FONT,
-            bg=SUCCESS_BG,
-            fg=ACCENT_FG,
-            padx=18,
-            pady=10,
-            relief=FLAT,
+            font=("Verdana", 11, "bold"),
+            bg=PRIMARY_FG,
+            fg=PRIMARY_BG,
+            padx=16,
+            pady=8,
+            cursor="hand2"
         )
-        view_btn.pack(side=LEFT)
-        self._add_button_hover(view_btn, SUCCESS_BG)
+        view_btn.pack(side=LEFT, padx=(0, 10))
+        self._add_button_hover(view_btn, PRIMARY_FG)
         
         sheets_btn = tk.Button(
-            button_frame,
-            text="Check Sheets",
+            control_card,
+            text="📁 Sheets",
             command=self.check_sheets,
             bd=0,
-            font=BUTTON_FONT,
-            bg=CARD_BG,
-            fg=ACCENT_FG,
-            padx=18,
-            pady=10,
-            relief=FLAT,
+            font=("Verdana", 11, "bold"),
+            bg=PRIMARY_FG,
+            fg=PRIMARY_BG,
+            padx=16,
+            pady=8,
+            cursor="hand2"
         )
-        sheets_btn.pack(side=LEFT, padx=12)
-        self._add_button_hover(sheets_btn, CARD_BG)
+        sheets_btn.pack(side=LEFT, padx=(0, 10))
+        self._add_button_hover(sheets_btn, PRIMARY_FG)
         
         reset_btn = tk.Button(
-            button_frame,
-            text="Reset Attendance",
+            control_card,
+            text="🗑️ Reset",
             command=self.reset_attendance,
             bd=0,
-            font=BUTTON_FONT,
+            font=("Verdana", 11, "bold"),
             bg=DANGER_BG,
             fg="white",
-            padx=18,
-            pady=10,
-            relief=FLAT,
+            padx=16,
+            pady=8,
+            cursor="hand2"
         )
-        reset_btn.pack(side=LEFT, padx=12)
+        reset_btn.pack(side=LEFT)
         self._add_button_hover(reset_btn, DANGER_BG, darken=True)
         
-        # Display area for attendance records
+        # Records section label
         display_label = tk.Label(
-            self.window,
-            text="Latest Attendance Records:",
+            content,
+            text="📋 Attendance Records",
             bg=PRIMARY_BG,
-            fg=ACCENT_FG,
-            font=LABEL_FONT,
+            fg=PRIMARY_FG,
+            font=("Verdana", 14, "bold"),
         )
-        display_label.pack(anchor=W, padx=PADDING, pady=(PADDING, 0))
+        display_label.pack(anchor=W, pady=(PADDING, 8))
         
         # Create frame for scrollable attendance list
-        frame = tk.Frame(self.window, bg=CARD_BG)
-        frame.pack(fill=BOTH, expand=True, padx=PADDING, pady=PADDING)
+        frame = tk.Frame(content, bg=CARD_BG)
+        frame.pack(fill=BOTH, expand=True)
         
         # Scrollbar
         scrollbar = tk.Scrollbar(frame, bg=CARD_BG)
@@ -122,14 +151,15 @@ class ViewAttendanceWindow:
         self.attendance_listbox = tk.Listbox(
             frame,
             yscrollcommand=scrollbar.set,
-            bg=PRIMARY_BG,
-            fg=PRIMARY_FG,
+            bg=INPUT_BG,
+            fg=INPUT_FG,
             font=("Verdana", 11),
             relief=FLAT,
             bd=0,
-            selectmode=tk.SINGLE
+            selectmode=tk.SINGLE,
+            highlightthickness=0
         )
-        self.attendance_listbox.pack(side=LEFT, fill=BOTH, expand=True)
+        self.attendance_listbox.pack(side=LEFT, fill=BOTH, expand=True, padx=2, pady=2)
         scrollbar.config(command=self.attendance_listbox.yview)
         
         # Populate subjects and load initial attendance data

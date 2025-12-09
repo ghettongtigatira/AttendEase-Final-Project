@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import *
 import os
 import datetime
+import pandas as pd
 from PIL import ImageTk, Image
 from frontend.register_window import RegisterWindow
 from frontend.attendance_window import AttendanceWindow
@@ -24,8 +25,13 @@ class MainWindow:
         self.base_dir = base_dir
         self.window = Tk()
         self.window.title(f"{APP_BRAND} - Face Attendance")
-        self.window.geometry(WINDOW_SIZE)
         self.window.configure(background=PRIMARY_BG)
+        self.window.overrideredirect(True)  # Borderless
+        # Set fullscreen manually (get screen dimensions)
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        self.window.geometry(f"{screen_width}x{screen_height}+0+0")
+        self.window.bind('<Escape>', lambda e: self.window.destroy())  # Exit on Escape
         
         # Initialize paths
         self.student_details_path = os.path.join(base_dir, "StudentDetails", "studentdetails.csv")
@@ -61,6 +67,22 @@ class MainWindow:
         header_right = tk.Frame(self.window, bg=ACCENT_BG)
         header_left.place(x=PADDING, y=8, height=56)
         header_right.place(relx=1.0, x=-PADDING, y=8, height=56, anchor="ne")
+
+        # Exit button
+        exit_btn = tk.Button(
+            header_right,
+            text="✕ Exit",
+            command=self.window.destroy,
+            bd=0,
+            font=("Verdana", 12, "bold"),
+            bg=DANGER_BG,
+            fg="white",
+            padx=16,
+            pady=6,
+            cursor="hand2"
+        )
+        exit_btn.pack(side=RIGHT, padx=(12, 0))
+        self._add_button_hover(exit_btn, DANGER_BG, darken=True)
 
         # Brand text (icon later)
         title = tk.Label(header_left, text=APP_BRAND, bg=ACCENT_BG, fg=PRIMARY_FG, font=TITLE_FONT)
@@ -118,12 +140,12 @@ class MainWindow:
             command=self.open_register_window,
             bd=0,
             font=BUTTON_FONT,
-            bg=INFO_BG,
-            fg=ACCENT_FG,
+            bg=PRIMARY_FG,
+            fg=PRIMARY_BG,
             padx=24, pady=12,
         )
         register_btn.pack(padx=PADDING, pady=(0,12))
-        self._add_button_hover(register_btn, INFO_BG)
+        self._add_button_hover(register_btn, PRIMARY_FG)
 
         take_card = tk.Frame(actions, bg=CARD_BG, bd=2, relief=RIDGE)
         take_card.grid(row=0, column=1, sticky="nsew", padx=PADDING, pady=PADDING)
@@ -134,12 +156,12 @@ class MainWindow:
             command=self.open_attendance_window,
             bd=0,
             font=BUTTON_FONT,
-            bg=SUCCESS_BG,
-            fg=ACCENT_FG,
+            bg=PRIMARY_FG,
+            fg=PRIMARY_BG,
             padx=24, pady=12,
         )
         take_btn.pack(padx=PADDING, pady=(0,12))
-        self._add_button_hover(take_btn, SUCCESS_BG)
+        self._add_button_hover(take_btn, PRIMARY_FG)
 
         view_card = tk.Frame(actions, bg=CARD_BG, bd=2, relief=RIDGE)
         view_card.grid(row=0, column=2, sticky="nsew", padx=PADDING, pady=PADDING)
@@ -150,12 +172,12 @@ class MainWindow:
             command=self.open_view_attendance_window,
             bd=0,
             font=BUTTON_FONT,
-            bg=SUCCESS_BG,
-            fg=ACCENT_FG,
+            bg=PRIMARY_FG,
+            fg=PRIMARY_BG,
             padx=24, pady=12,
         )
         view_btn.pack(padx=PADDING, pady=(0,12))
-        self._add_button_hover(view_btn, SUCCESS_BG)
+        self._add_button_hover(view_btn, PRIMARY_FG)
 
         manage_card = tk.Frame(actions, bg=CARD_BG, bd=2, relief=RIDGE)
         manage_card.grid(row=0, column=3, sticky="nsew", padx=PADDING, pady=PADDING)
@@ -166,12 +188,12 @@ class MainWindow:
             command=self.open_manage_subjects_window,
             bd=0,
             font=BUTTON_FONT,
-            bg="#6C5CE7",  # purple for subject management
-            fg=ACCENT_FG,
+            bg=PRIMARY_FG,
+            fg=PRIMARY_BG,
             padx=24, pady=12,
         )
         manage_btn.pack(padx=PADDING, pady=(0,12))
-        self._add_button_hover(manage_btn, "#6C5CE7")
+        self._add_button_hover(manage_btn, PRIMARY_FG)
 
         # Students list section
         from tkinter import ttk
@@ -184,12 +206,14 @@ class MainWindow:
         tk.Label(title_frame, text="👥  Enrolled Students", bg=PRIMARY_BG, fg=PRIMARY_FG, font=("Verdana", 16, "bold")).pack(side=LEFT, padx=PADDING, pady=(0,6))
         tk.Frame(title_frame, bg="#10233E", height=2).pack(side=LEFT, fill=X, expand=True, padx=(12, PADDING), pady=(14,0))
 
-        columns = ("Enrollment", "Name")
+        columns = ("Enrollment", "Name", "Subjects")
         self.students_view = ttk.Treeview(list_frame, columns=columns, show="headings", height=10)
         self.students_view.heading("Enrollment", text="ID")
         self.students_view.heading("Name", text="Name")
-        self.students_view.column("Enrollment", width=200, anchor="w")
-        self.students_view.column("Name", width=540, anchor="w")
+        self.students_view.heading("Subjects", text="Enrolled Subjects")
+        self.students_view.column("Enrollment", width=120, anchor="w")
+        self.students_view.column("Name", width=280, anchor="w")
+        self.students_view.column("Subjects", width=400, anchor="w")
         # Add scrollbars (use pack consistently to avoid mix with grid)
         sv_container = tk.Frame(list_frame, bg=PRIMARY_BG)
         sv_container.pack(fill=BOTH, expand=True)
@@ -288,26 +312,30 @@ class MainWindow:
     
     def open_register_window(self):
         """Open student registration window"""
-        RegisterWindow(self.base_dir, self.haarcascade_path, self.train_path, self.student_details_path, self.model_path)
+        self.window.withdraw()  # Hide main window
+        RegisterWindow(self.base_dir, self.haarcascade_path, self.train_path, self.student_details_path, self.model_path, main_window=self)
     
     def open_attendance_window(self):
         """Open take attendance window"""
-        # Fix argument order: (base_dir, haarcascade_path, train_path, student_details_path, model_path)
+        self.window.withdraw()  # Hide main window
         AttendanceWindow(
             self.base_dir,
             self.haarcascade_path,
             self.train_path,
             self.student_details_path,
             self.model_path,
+            main_window=self
         )
     
     def open_view_attendance_window(self):
         """Open view attendance window"""
-        ViewAttendanceWindow(self.base_dir, self.attendance_path)
+        self.window.withdraw()  # Hide main window
+        ViewAttendanceWindow(self.base_dir, self.attendance_path, main_window=self)
 
     def open_manage_subjects_window(self):
         """Open manage subjects window"""
-        ManageSubjectsWindow(self.base_dir, self.attendance_path, self.student_details_path)
+        self.window.withdraw()  # Hide main window
+        ManageSubjectsWindow(self.base_dir, self.attendance_path, self.student_details_path, main_window=self)
     
     def reset_student_data(self):
         """Reset all student data"""
@@ -355,7 +383,12 @@ class MainWindow:
                 return
             for idx, row in df.iterrows():
                 tag = "odd" if idx % 2 else "even"
-                self.students_view.insert("", "end", values=(row.get("Enrollment", ""), row.get("Name", "")), tags=(tag,))
+                # Get subjects and format for display (replace semicolons with commas)
+                subjects = row.get("Subjects", "")
+                if pd.isna(subjects):
+                    subjects = ""
+                subjects_display = subjects.replace(";", ", ") if subjects else "No subjects"
+                self.students_view.insert("", "end", values=(row.get("Enrollment", ""), row.get("Name", ""), subjects_display), tags=(tag,))
         except Exception as e:
             print(f"Error loading students list: {e}")
 

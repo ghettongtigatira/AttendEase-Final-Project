@@ -12,12 +12,13 @@ from frontend.theme import (
 )
 
 class AttendanceWindow:
-    def __init__(self, base_dir, haarcascade_path, train_path, student_details_path, model_path):
+    def __init__(self, base_dir, haarcascade_path, train_path, student_details_path, model_path, main_window=None):
         self.base_dir = base_dir
         self.haarcascade_path = haarcascade_path
         self.train_path = train_path
         self.student_details_path = student_details_path
         self.model_path = model_path
+        self.main_window = main_window
         
         # Initialize logic handler
         self.logic = AttendanceLogic(
@@ -25,13 +26,24 @@ class AttendanceWindow:
             student_details_path, model_path
         )
         
-        self.window = tk.Tk()
+        self.window = tk.Toplevel()
         self.window.title(f"{APP_BRAND} - Take Attendance")
-        self.window.geometry("900x540")
         self.window.configure(background=PRIMARY_BG)
-        self.window.resizable(0, 0)
+        self.window.overrideredirect(True)  # Borderless
+        # Set fullscreen manually (get screen dimensions)
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        self.window.geometry(f"{screen_width}x{screen_height}+0+0")
+        self.window.bind('<Escape>', lambda e: self.go_back())  # Back on Escape
+        self.window.protocol("WM_DELETE_WINDOW", self.go_back)
         
         self.setup_ui()
+    
+    def go_back(self):
+        """Go back to main window"""
+        self.window.destroy()
+        if self.main_window:
+            self.main_window.window.deiconify()
     
     def setup_ui(self):
         """Setup attendance UI"""
@@ -47,88 +59,103 @@ class AttendanceWindow:
         subtitle = tk.Label(header, text="Select a subject, then start session", bg=ACCENT_BG, fg="#9fb5d9", font=SUBTITLE_FONT)
         subtitle.pack(side=LEFT, padx=PADDING, pady=PADDING)
         
-        body = tk.Frame(self.window, bg=PRIMARY_BG)
-        body.pack(fill=BOTH, expand=True, padx=PADDING, pady=PADDING)
-
-        # Subject label and input
-        left = tk.Frame(body, bg=PRIMARY_BG)
-        left.pack(side=LEFT, fill=BOTH, expand=True)
-
-        sub = tk.Label(
-            left,
-            text="Subject",
-            bg=PRIMARY_BG,
-            fg=ACCENT_FG,
-            font=SUBTITLE_FONT,
+        # Back button
+        back_btn = tk.Button(
+            header,
+            text="← Back",
+            command=self.go_back,
+            bd=0,
+            font=("Verdana", 12, "bold"),
+            bg=ACCENT_BG,
+            fg=PRIMARY_FG,
+            padx=16,
+            pady=6,
+            cursor="hand2"
         )
-        sub.pack(anchor=W, padx=PADDING, pady=(PADDING, 6))
-
-        # Subject dropdown (populated from AttendanceHandler)
+        back_btn.pack(side=RIGHT, padx=PADDING, pady=PADDING)
+        self._add_button_hover(back_btn, ACCENT_BG)
+        
+        # Center container
+        center_frame = tk.Frame(self.window, bg=PRIMARY_BG)
+        center_frame.pack(expand=True, fill=BOTH)
+        
+        # Card container (centered)
+        card = tk.Frame(center_frame, bg=CARD_BG, padx=50, pady=35)
+        card.place(relx=0.5, rely=0.45, anchor=CENTER)
+        
+        # Card title
+        tk.Label(card, text="Attendance Session", bg=CARD_BG, fg=PRIMARY_FG, font=("Verdana", 20, "bold")).pack(pady=(0, 25))
+        
+        # Two column layout
+        columns = tk.Frame(card, bg=CARD_BG)
+        columns.pack(fill=X)
+        
+        # Left column - Subject selection
+        left = tk.Frame(columns, bg=CARD_BG)
+        left.pack(side=LEFT, padx=(0, 40))
+        
+        tk.Label(left, text="Subject", bg=CARD_BG, fg=ACCENT_FG, font=SUBTITLE_FONT).pack(anchor=W, pady=(0, 8))
+        
         from tkinter import ttk
         self.subject_var = tk.StringVar()
-        self.subject_combo = ttk.Combobox(left, textvariable=self.subject_var, state="readonly", width=24)
-        self.subject_combo.pack(anchor=W, padx=PADDING, pady=(0, 6))
-        # Enable start and clear status on selection
+        self.subject_combo = ttk.Combobox(left, textvariable=self.subject_var, state="readonly", width=28, font=("Verdana", 11))
+        self.subject_combo.pack(anchor=W, pady=(0, 12))
         self.subject_combo.bind("<<ComboboxSelected>>", self.on_subject_selected)
-
-        # Confirm button to lock subject selection
+        
         confirm_btn = tk.Button(
             left,
             text="✅  Confirm Subject",
             command=self.on_confirm_subject,
             bd=0,
-            font=BUTTON_FONT,
+            font=("Verdana", 12),
             bg=ACCENT_BG,
             fg=ACCENT_FG,
-            activebackground=CARD_BG,
-            activeforeground=PRIMARY_FG,
+            padx=16,
+            pady=8,
+            cursor="hand2"
         )
-        confirm_btn.pack(anchor=W, padx=PADDING, pady=(0, PADDING))
+        confirm_btn.pack(anchor=W)
         self._add_button_hover(confirm_btn, ACCENT_BG)
         
-        # Notification label
-        right = tk.Frame(body, bg=PRIMARY_BG)
-        right.pack(side=RIGHT, fill=BOTH, expand=True)
-
-        lbl3 = tk.Label(
-            right,
-            text="Status",
-            bg=PRIMARY_BG,
-            fg=ACCENT_FG,
-            font=SUBTITLE_FONT,
-        )
-        lbl3.pack(anchor=W, padx=PADDING, pady=(PADDING, 6))
+        # Right column - Status
+        right = tk.Frame(columns, bg=CARD_BG)
+        right.pack(side=LEFT)
+        
+        tk.Label(right, text="Status", bg=CARD_BG, fg=ACCENT_FG, font=SUBTITLE_FONT).pack(anchor=W, pady=(0, 8))
         
         self.message = tk.Label(
             right,
-            text="",
+            text="Select a subject to begin",
             bd=0,
-            bg=CARD_BG,
+            bg=INPUT_BG,
             fg=PRIMARY_FG,
-            font=("Verdana", 14, "bold"),
-            height=4,
-            width=32,
+            font=("Verdana", 12),
+            height=3,
+            width=30,
             relief=FLAT,
+            anchor=W,
+            padx=12
         )
-        self.message.pack(fill=X, padx=PADDING, pady=(0, PADDING))
+        self.message.pack(fill=X)
         
-        # Buttons
-        actions = tk.Frame(self.window, bg=PRIMARY_BG)
-        actions.pack(fill=X, padx=PADDING, pady=(0, PADDING))
-
+        # Action buttons
+        actions = tk.Frame(card, bg=CARD_BG)
+        actions.pack(pady=(30, 0))
+        
         self.start_btn = tk.Button(
             actions,
             text="▶️  Start Attendance",
             command=self.on_start_attendance,
             bd=0,
             font=BUTTON_FONT,
-            bg=SUCCESS_BG,
-            fg=ACCENT_FG,
-            activebackground=ACCENT_BG,
-            activeforeground=ACCENT_FG,
+            bg=PRIMARY_FG,
+            fg=PRIMARY_BG,
+            padx=24,
+            pady=12,
+            cursor="hand2"
         )
-        self.start_btn.pack(side=LEFT, padx=PADDING, pady=PADDING)
-        self._add_button_hover(self.start_btn, SUCCESS_BG)
+        self.start_btn.pack(side=LEFT, padx=(0, 15))
+        self._add_button_hover(self.start_btn, PRIMARY_FG)
         
         stop_btn = tk.Button(
             actions,
@@ -138,10 +165,11 @@ class AttendanceWindow:
             font=BUTTON_FONT,
             bg=DANGER_BG,
             fg="white",
-            activebackground=CARD_BG,
-            activeforeground=PRIMARY_FG,
+            padx=24,
+            pady=12,
+            cursor="hand2"
         )
-        stop_btn.pack(side=LEFT, padx=PADDING, pady=PADDING)
+        stop_btn.pack(side=LEFT)
         self._add_button_hover(stop_btn, DANGER_BG, darken=True)
 
         # Seed default subjects and populate dropdown
