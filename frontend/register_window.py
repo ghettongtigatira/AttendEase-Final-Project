@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk
+from tkinter import filedialog
 from backend.face_recognition import FaceRecognizer
 from backend.student_manager import StudentManager
 from backend.attendance_handler import AttendanceHandler
@@ -9,9 +10,11 @@ from frontend.theme import (
     PRIMARY_BG, PRIMARY_FG, ACCENT_BG, ACCENT_FG, CARD_BG,
     INPUT_BG, INPUT_FG, TITLE_FONT, SUBTITLE_FONT, BUTTON_FONT,
     LABEL_FONT, WINDOW_SIZE, PADDING, APP_BRAND, SUCCESS_BG, DANGER_BG,
-    configure_ttk_styles, animate_window_in
+    BORDER_COLOR, HIGHLIGHT, configure_ttk_styles, animate_window_in
 )
 import os
+import cv2
+from PIL import Image, ImageTk
 
 class RegisterWindow:
     def __init__(self, base_dir, haarcascade_path, train_path, student_details_path, model_path, main_window=None):
@@ -56,16 +59,20 @@ class RegisterWindow:
             self.main_window.load_students_list()
     
     def setup_ui(self):
-        """Setup registration UI"""
+        """Setup registration UI - Modern horizontal layout"""
         # Apply theme styles
         try:
             configure_ttk_styles(self.window)
         except Exception:
             pass
-        header = tk.Frame(self.window, bg=ACCENT_BG)
+        
+        # Header
+        header = tk.Frame(self.window, bg=ACCENT_BG, height=70)
         header.pack(fill=X)
-        tk.Label(header, text="👤➕  Register Your Face", bg=ACCENT_BG, fg=PRIMARY_FG, font=TITLE_FONT).pack(side=LEFT, padx=PADDING, pady=PADDING)
-        tk.Label(header, text="Enter student details, capture images, then train", bg=ACCENT_BG, fg="#9fb5d9", font=SUBTITLE_FONT).pack(side=LEFT, padx=PADDING, pady=PADDING)
+        header.pack_propagate(False)
+        
+        header_line = tk.Frame(self.window, bg=PRIMARY_FG, height=2)
+        header_line.pack(fill=X)
         
         # Back button
         back_btn = tk.Button(
@@ -73,90 +80,129 @@ class RegisterWindow:
             text="← Back",
             command=self.go_back,
             bd=0,
-            font=("Verdana", 12, "bold"),
-            bg=ACCENT_BG,
+            font=("Segoe UI", 11, "bold"),
+            bg=CARD_BG,
             fg=PRIMARY_FG,
             padx=16,
-            pady=6,
-            cursor="hand2"
+            pady=8,
+            cursor="hand2",
+            highlightthickness=1,
+            highlightbackground=BORDER_COLOR,
         )
-        back_btn.pack(side=RIGHT, padx=PADDING, pady=PADDING)
-        self._add_button_hover(back_btn, ACCENT_BG)
+        back_btn.pack(side=LEFT, padx=PADDING*2, pady=15)
+        self._add_button_hover(back_btn, CARD_BG)
+        
+        # Title
+        tk.Label(header, text="👤  Register Student", bg=ACCENT_BG, fg=PRIMARY_FG, font=TITLE_FONT).pack(side=LEFT, padx=PADDING)
+        tk.Label(header, text="│ Enter details and capture face", bg=ACCENT_BG, fg="#8899aa", font=("Segoe UI", 12)).pack(side=LEFT, padx=10)
         
         # Center container
         center_frame = tk.Frame(self.window, bg=PRIMARY_BG)
         center_frame.pack(expand=True, fill=BOTH)
         
-        # Card container (centered)
+        # Main card container - WIDE horizontal layout
         card = tk.Frame(center_frame, bg=CARD_BG, padx=40, pady=30)
-        card.place(relx=0.5, rely=0.45, anchor=CENTER)
+        card.place(relx=0.5, rely=0.5, anchor=CENTER)
         
         # Section title
-        tk.Label(card, text="Enter Student Details", bg=CARD_BG, fg=PRIMARY_FG, font=("Verdana", 20, "bold")).pack(pady=(0, 20))
+        tk.Label(card, text="Enter Student Details", bg=CARD_BG, fg=PRIMARY_FG, font=("Segoe UI", 24, "bold")).pack(pady=(0, 25))
         
-        # Form container
-        form = tk.Frame(card, bg=CARD_BG)
-        form.pack(pady=(0, 15))
+        # ============== MAIN CONTENT - TWO COLUMNS ==============
+        content_frame = tk.Frame(card, bg=CARD_BG)
+        content_frame.pack(fill=BOTH, expand=True)
         
-        # Enrollment label and input
-        lbl1 = tk.Label(form, text="Enrollment No", bg=CARD_BG, fg=ACCENT_FG, font=LABEL_FONT, width=14, anchor=W)
-        lbl1.grid(row=0, column=0, pady=8, padx=(0, 15), sticky=W)
-        self.txt1 = tk.Entry(form, bd=0, bg=INPUT_BG, fg=INPUT_FG, relief=FLAT, font=("Verdana", 14), width=25, insertbackground=INPUT_FG)
-        self.txt1.grid(row=0, column=1, pady=8, ipady=8, sticky=W)
-        # Format hint
-        self.id_hint = tk.Label(form, text="Format: 0123-0123", bg=CARD_BG, fg="#6b7a94", font=("Verdana", 9, "italic"))
-        self.id_hint.grid(row=1, column=1, sticky=W)
+        # LEFT COLUMN - Form inputs
+        left_col = tk.Frame(content_frame, bg=CARD_BG)
+        left_col.pack(side=LEFT, fill=BOTH, padx=(0, 30))
         
-        # Name label and input
-        lbl2 = tk.Label(form, text="Name", bg=CARD_BG, fg=ACCENT_FG, font=LABEL_FONT, width=14, anchor=W)
-        lbl2.grid(row=2, column=0, pady=(15, 8), padx=(0, 15), sticky=W)
-        self.txt2 = tk.Entry(form, bd=0, bg=INPUT_BG, fg=INPUT_FG, relief=FLAT, font=("Verdana", 14), width=25, insertbackground=INPUT_FG)
-        self.txt2.grid(row=2, column=1, pady=(15, 8), ipady=8, sticky=W)
+        # Enrollment No
+        tk.Label(left_col, text="Enrollment No", bg=CARD_BG, fg=ACCENT_FG, font=LABEL_FONT, anchor=W).pack(anchor=W, pady=(0, 5))
+        self.txt1 = tk.Entry(left_col, bd=0, bg=INPUT_BG, fg=INPUT_FG, relief=FLAT, font=("Segoe UI", 13), width=28, insertbackground=INPUT_FG)
+        self.txt1.pack(anchor=W, ipady=10, pady=(0, 3))
+        self.id_hint = tk.Label(left_col, text="Format: 0123-0123", bg=CARD_BG, fg="#6b7a94", font=("Segoe UI", 9, "italic"))
+        self.id_hint.pack(anchor=W, pady=(0, 15))
         
-        # Subject selection section
-        subject_section = tk.Frame(card, bg=CARD_BG)
-        subject_section.pack(fill=X, pady=(10, 0))
+        # Name
+        tk.Label(left_col, text="Name", bg=CARD_BG, fg=ACCENT_FG, font=LABEL_FONT, anchor=W).pack(anchor=W, pady=(0, 5))
+        self.txt2 = tk.Entry(left_col, bd=0, bg=INPUT_BG, fg=INPUT_FG, relief=FLAT, font=("Segoe UI", 13), width=28, insertbackground=INPUT_FG)
+        self.txt2.pack(anchor=W, ipady=10, pady=(0, 20))
         
-        tk.Label(subject_section, text="Enrolled Subjects", bg=CARD_BG, fg=ACCENT_FG, font=LABEL_FONT).pack(anchor=W, pady=(0, 8))
+        # Enrolled Subjects
+        tk.Label(left_col, text="Enrolled Subjects", bg=CARD_BG, fg=ACCENT_FG, font=LABEL_FONT, anchor=W).pack(anchor=W, pady=(0, 8))
         
-        # Subject selection row
-        subject_row = tk.Frame(subject_section, bg=CARD_BG)
-        subject_row.pack(fill=X)
+        subject_row = tk.Frame(left_col, bg=CARD_BG)
+        subject_row.pack(anchor=W, pady=(0, 8))
         
-        # Subject dropdown
         self.subject_var = tk.StringVar()
-        self.subject_combo = ttk.Combobox(subject_row, textvariable=self.subject_var, state="readonly", width=20, font=("Verdana", 11))
-        self.subject_combo.pack(side=LEFT, padx=(0, 10))
+        self.subject_combo = ttk.Combobox(subject_row, textvariable=self.subject_var, state="readonly", width=18, font=("Segoe UI", 11))
+        self.subject_combo.pack(side=LEFT, padx=(0, 10), ipady=3)
         
-        # Add subject button
-        add_subject_btn = tk.Button(subject_row, text="➕ Add", command=self.add_subject_to_list, bd=0, font=("Verdana", 10, "bold"), bg=PRIMARY_FG, fg=PRIMARY_BG, padx=12, pady=4, cursor="hand2")
-        add_subject_btn.pack(side=LEFT, padx=(0, 10))
+        add_subject_btn = tk.Button(subject_row, text="➕ Add", command=self.add_subject_to_list, bd=0, font=("Segoe UI", 10, "bold"), bg=PRIMARY_FG, fg=PRIMARY_BG, padx=14, pady=5, cursor="hand2")
+        add_subject_btn.pack(side=LEFT, padx=(0, 8))
         self._add_button_hover(add_subject_btn, PRIMARY_FG)
         
-        # Clear all button
-        clear_btn = tk.Button(subject_row, text="🧹 Clear All", command=self.clear_subjects, bd=0, font=("Verdana", 10), bg=ACCENT_BG, fg=ACCENT_FG, padx=10, pady=4, cursor="hand2")
+        clear_btn = tk.Button(subject_row, text="🧹 Clear", command=self.clear_subjects, bd=0, font=("Segoe UI", 10), bg=ACCENT_BG, fg=ACCENT_FG, padx=12, pady=5, cursor="hand2")
         clear_btn.pack(side=LEFT)
         self._add_button_hover(clear_btn, ACCENT_BG)
         
-        # Selected subjects display
-        self.subjects_display = tk.Label(subject_section, text="No subjects selected", bg=INPUT_BG, fg="#6b7a94", font=("Verdana", 10), anchor=W, padx=10, pady=8)
-        self.subjects_display.pack(fill=X, pady=(8, 0))
+        self.subjects_display = tk.Label(left_col, text="No subjects selected", bg=INPUT_BG, fg="#6b7a94", font=("Segoe UI", 10), anchor=W, padx=10, pady=8, width=35)
+        self.subjects_display.pack(anchor=W)
         
-        # Status section
-        status_frame = tk.Frame(card, bg=CARD_BG)
-        status_frame.pack(fill=X, pady=(15, 0))
-        tk.Label(status_frame, text="Status", bg=CARD_BG, fg=ACCENT_FG, font=LABEL_FONT).pack(anchor=W, pady=(0, 6))
-        self.message = tk.Label(status_frame, text="Ready to capture", bd=0, bg=INPUT_BG, fg=PRIMARY_FG, relief=FLAT, font=("Verdana", 11), height=2, anchor=W, padx=10)
-        self.message.pack(fill=X)
+        # RIGHT COLUMN - ID Photo & Status
+        right_col = tk.Frame(content_frame, bg=CARD_BG)
+        right_col.pack(side=LEFT, fill=BOTH)
         
-        # Buttons
+        # ID Photo Section - Modern card design
+        tk.Label(right_col, text="ID Photo (Optional)", bg=CARD_BG, fg=ACCENT_FG, font=LABEL_FONT, anchor=W).pack(anchor=W, pady=(0, 10))
+        
+        # ID Photo card with border
+        id_photo_card = tk.Frame(right_col, bg=INPUT_BG, highlightthickness=1, highlightbackground=BORDER_COLOR, padx=15, pady=15)
+        id_photo_card.pack(anchor=W, pady=(0, 20))
+        
+        # Photo preview - centered, larger
+        self.id_photo_preview_frame = tk.Frame(id_photo_card, bg="#0a1628", width=120, height=120, highlightthickness=2, highlightbackground=PRIMARY_FG)
+        self.id_photo_preview_frame.pack(pady=(0, 12))
+        self.id_photo_preview_frame.pack_propagate(False)
+        
+        self.id_photo_label = tk.Label(self.id_photo_preview_frame, text="👤", bg="#0a1628", fg="#3d5a80", font=("Segoe UI", 36))
+        self.id_photo_label.pack(expand=True, fill=BOTH)
+        
+        # Buttons row - horizontal below photo
+        id_btn_row = tk.Frame(id_photo_card, bg=INPUT_BG)
+        id_btn_row.pack()
+        
+        capture_id_btn = tk.Button(id_btn_row, text="📸", command=self.capture_id_photo, bd=0, font=("Segoe UI", 14), bg=PRIMARY_FG, fg=PRIMARY_BG, padx=12, pady=6, cursor="hand2")
+        capture_id_btn.pack(side=LEFT, padx=(0, 8))
+        self._add_button_hover(capture_id_btn, PRIMARY_FG)
+        
+        upload_id_btn = tk.Button(id_btn_row, text="📁", command=self.upload_id_photo, bd=0, font=("Segoe UI", 14), bg=ACCENT_BG, fg=ACCENT_FG, padx=12, pady=6, cursor="hand2")
+        upload_id_btn.pack(side=LEFT, padx=(0, 8))
+        self._add_button_hover(upload_id_btn, ACCENT_BG)
+        
+        clear_id_btn = tk.Button(id_btn_row, text="🗑️", command=self.clear_id_photo, bd=0, font=("Segoe UI", 14), bg="#1a2a3f", fg="#6b7a94", padx=12, pady=6, cursor="hand2")
+        clear_id_btn.pack(side=LEFT)
+        self._add_button_hover(clear_id_btn, "#1a2a3f")
+        
+        # Store the captured/uploaded photo path temporarily
+        self.temp_id_photo_path = None
+        self.temp_id_photo_image = None
+        
+        # Status Section
+        tk.Label(right_col, text="Status", bg=CARD_BG, fg=ACCENT_FG, font=LABEL_FONT, anchor=W).pack(anchor=W, pady=(0, 8))
+        self.message = tk.Label(right_col, text="Ready to capture", bd=0, bg=INPUT_BG, fg=PRIMARY_FG, relief=FLAT, font=("Segoe UI", 11), height=2, anchor=W, padx=12, width=30)
+        self.message.pack(anchor=W)
+        
+        # ============== ACTION BUTTONS - Bottom Center ==============
         actions = tk.Frame(card, bg=CARD_BG)
-        actions.pack(pady=(20, 0))
-        take_btn = tk.Button(actions, text="📸  Take Image", command=self.take_image, bd=0, font=BUTTON_FONT, bg=PRIMARY_FG, fg=PRIMARY_BG, padx=24, pady=12, cursor="hand2")
-        take_btn.pack(side=LEFT, padx=(0, 15))
+        actions.pack(pady=(25, 5))
+        
+        take_btn = tk.Button(actions, text="📸  Take Image", command=self.take_image, bd=0, font=BUTTON_FONT, bg=PRIMARY_FG, fg=PRIMARY_BG, padx=35, pady=14, cursor="hand2")
+        take_btn.pack(side=LEFT, padx=(0, 20))
         self._add_button_hover(take_btn, PRIMARY_FG)
-        train_btn = tk.Button(actions, text="⚙️  Train Image", command=self.train_image, bd=0, font=BUTTON_FONT, bg=PRIMARY_FG, fg=PRIMARY_BG, padx=24, pady=12, cursor="hand2")
+        
+        train_btn = tk.Button(actions, text="⚙️  Train Image", command=self.train_image, bd=0, font=BUTTON_FONT, bg=PRIMARY_FG, fg=PRIMARY_BG, padx=35, pady=14, cursor="hand2")
         train_btn.pack(side=LEFT)
+        self._add_button_hover(train_btn, PRIMARY_FG)
         self._add_button_hover(train_btn, PRIMARY_FG)
     
     def load_subjects(self):
@@ -192,6 +238,123 @@ class RegisterWindow:
         else:
             self.subjects_display.configure(text="No subjects selected", fg="#6b7a94")
     
+    # ============== ID PHOTO METHODS ==============
+    
+    def capture_id_photo(self):
+        """Capture ID photo from camera"""
+        enrollment = (self.txt1.get() or "").strip()
+        
+        if not enrollment:
+            self.message.configure(text="Enter Enrollment No first!", bg="red", fg="white")
+            return
+        
+        # Validate enrollment format
+        import re
+        if not re.match(r"^\d{4}-\d{4}$", enrollment):
+            self.message.configure(text="Invalid ID format. Use ####-#### (e.g., 0123-0263)", bg="red", fg="white")
+            return
+        
+        self.message.configure(text="Opening camera... Press SPACE to capture, ESC to cancel", bg=INPUT_BG, fg=PRIMARY_FG)
+        self.window.update()
+        
+        # Use the backend method to capture
+        success, msg, captured_image = self.student_manager.capture_id_photo_from_camera(
+            enrollment, 
+            self.haarcascade_path
+        )
+        
+        if success and captured_image is not None:
+            self.temp_id_photo_image = captured_image
+            self.temp_id_photo_path = None  # Clear file path since we have image
+            self.update_id_photo_preview(captured_image)
+            self.message.configure(text="ID photo captured! It will be saved when you register.", bg="green", fg="white")
+        else:
+            self.message.configure(text=msg, bg="red" if not success else INPUT_BG, fg="white" if not success else PRIMARY_FG)
+    
+    def upload_id_photo(self):
+        """Upload ID photo from file"""
+        enrollment = (self.txt1.get() or "").strip()
+        
+        if not enrollment:
+            self.message.configure(text="Enter Enrollment No first!", bg="red", fg="white")
+            return
+        
+        # Validate enrollment format
+        import re
+        if not re.match(r"^\d{4}-\d{4}$", enrollment):
+            self.message.configure(text="Invalid ID format. Use ####-#### (e.g., 0123-0263)", bg="red", fg="white")
+            return
+        
+        # Open file dialog
+        file_path = filedialog.askopenfilename(
+            title="Select ID Photo",
+            filetypes=[
+                ("Image files", "*.jpg *.jpeg *.png *.bmp *.gif"),
+                ("All files", "*.*")
+            ]
+        )
+        
+        if file_path:
+            try:
+                # Load and preview the image
+                img = Image.open(file_path)
+                self.temp_id_photo_path = file_path
+                self.temp_id_photo_image = None  # Clear camera image since we have file
+                
+                # Convert PIL image to format suitable for preview
+                self.update_id_photo_preview_from_pil(img)
+                self.message.configure(text="ID photo loaded! It will be saved when you register.", bg="green", fg="white")
+            except Exception as e:
+                self.message.configure(text=f"Error loading image: {str(e)}", bg="red", fg="white")
+    
+    def update_id_photo_preview(self, cv2_image):
+        """Update the ID photo preview from a cv2 image"""
+        try:
+            # Convert BGR to RGB
+            image_rgb = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(image_rgb)
+            self.update_id_photo_preview_from_pil(img)
+        except Exception as e:
+            self.message.configure(text=f"Error displaying preview: {str(e)}", bg="red", fg="white")
+    
+    def update_id_photo_preview_from_pil(self, pil_image):
+        """Update the ID photo preview from a PIL image"""
+        try:
+            # Resize to fit preview frame (100x100)
+            pil_image.thumbnail((96, 96), Image.Resampling.LANCZOS)
+            
+            # Convert to PhotoImage
+            photo = ImageTk.PhotoImage(pil_image)
+            
+            # Update label
+            self.id_photo_label.configure(image=photo, text="")
+            self.id_photo_label.image = photo  # Keep reference
+        except Exception as e:
+            self.message.configure(text=f"Error displaying preview: {str(e)}", bg="red", fg="white")
+    
+    def clear_id_photo(self):
+        """Clear the selected ID photo"""
+        self.temp_id_photo_path = None
+        self.temp_id_photo_image = None
+        self.id_photo_label.configure(image="", text="�", font=("Segoe UI", 36), fg="#3d5a80")
+        self.id_photo_label.image = None
+        self.message.configure(text="ID photo cleared", bg=INPUT_BG, fg=PRIMARY_FG)
+    
+    def save_id_photo_for_student(self, enrollment):
+        """Save the captured/uploaded ID photo for the student"""
+        try:
+            if self.temp_id_photo_path:
+                # Save from file
+                success, msg = self.student_manager.save_id_photo(enrollment, self.temp_id_photo_path, is_file_path=True)
+                return success, msg
+            elif self.temp_id_photo_image is not None:
+                # Save from camera capture
+                success, msg = self.student_manager.save_id_photo(enrollment, self.temp_id_photo_image, is_file_path=False)
+                return success, msg
+            return True, "No ID photo to save"
+        except Exception as e:
+            return False, f"Error saving ID photo: {str(e)}"
+
     def take_image(self):
         """Capture student images"""
         enrollment = (self.txt1.get() or "").strip()
@@ -244,6 +407,11 @@ class RegisterWindow:
                 self.message.configure(text=msg_add, bg="red", fg="white")
                 TextToSpeech.speak(msg_add)
                 return
+            
+            # Save ID photo if captured/uploaded
+            id_photo_ok, id_photo_msg = self.save_id_photo_for_student(enrollment)
+            if not id_photo_ok:
+                self.message.configure(text=f"Warning: {id_photo_msg}", bg="#f59e0b", fg="white")
 
             # Auto-train immediately after successful capture & add
             try:
@@ -286,6 +454,8 @@ class RegisterWindow:
                 # Clear selected subjects
                 self.selected_subjects = []
                 self.update_subjects_display()
+                # Clear ID photo preview
+                self.clear_id_photo()
             else:
                 self.message.configure(text="Training failed!", bg="red", fg="white")
                 TextToSpeech.speak("Training failed")

@@ -10,7 +10,7 @@ from frontend.theme import (
     PRIMARY_BG, PRIMARY_FG, ACCENT_BG, ACCENT_FG, CARD_BG,
     INPUT_BG, INPUT_FG, TITLE_FONT, SUBTITLE_FONT, BUTTON_FONT,
     LABEL_FONT, WINDOW_SIZE, PADDING, APP_BRAND, SUCCESS_BG, DANGER_BG,
-    configure_ttk_styles, animate_window_in
+    BORDER_COLOR, HIGHLIGHT, configure_ttk_styles, animate_window_in
 )
 
 class ViewAttendanceWindow:
@@ -50,10 +50,14 @@ class ViewAttendanceWindow:
             configure_ttk_styles(self.window)
         except Exception:
             pass
-        header = tk.Frame(self.window, bg=ACCENT_BG)
+        
+        # Header
+        header = tk.Frame(self.window, bg=ACCENT_BG, height=70)
         header.pack(fill=X)
-        tk.Label(header, text="📑  View Attendance Records", bg=ACCENT_BG, fg=PRIMARY_FG, font=TITLE_FONT).pack(side=LEFT, padx=PADDING, pady=PADDING)
-        tk.Label(header, text="Select subject to see summary", bg=ACCENT_BG, fg="#9fb5d9", font=SUBTITLE_FONT).pack(side=LEFT, padx=PADDING, pady=PADDING)
+        header.pack_propagate(False)
+        
+        header_line = tk.Frame(self.window, bg=PRIMARY_FG, height=2)
+        header_line.pack(fill=X)
         
         # Back button
         back_btn = tk.Button(
@@ -61,39 +65,45 @@ class ViewAttendanceWindow:
             text="← Back",
             command=self.go_back,
             bd=0,
-            font=("Verdana", 12, "bold"),
-            bg=ACCENT_BG,
+            font=("Segoe UI", 11, "bold"),
+            bg=CARD_BG,
             fg=PRIMARY_FG,
             padx=16,
-            pady=6,
-            cursor="hand2"
+            pady=8,
+            cursor="hand2",
+            highlightthickness=1,
+            highlightbackground=BORDER_COLOR,
         )
-        back_btn.pack(side=RIGHT, padx=PADDING, pady=PADDING)
-        self._add_button_hover(back_btn, ACCENT_BG)
+        back_btn.pack(side=LEFT, padx=PADDING*2, pady=15)
+        self._add_button_hover(back_btn, CARD_BG)
+        
+        # Title
+        tk.Label(header, text="📊  View Attendance", bg=ACCENT_BG, fg=PRIMARY_FG, font=TITLE_FONT).pack(side=LEFT, padx=PADDING)
+        tk.Label(header, text="│ View and manage records", bg=ACCENT_BG, fg="#8899aa", font=("Segoe UI", 12)).pack(side=LEFT, padx=10)
         
         # Main content area
         content = tk.Frame(self.window, bg=PRIMARY_BG)
-        content.pack(fill=BOTH, expand=True, padx=PADDING*3, pady=PADDING)
+        content.pack(fill=BOTH, expand=True, padx=PADDING*2, pady=PADDING)
         
         # Top control bar in a card
-        control_card = tk.Frame(content, bg=CARD_BG, padx=20, pady=15)
+        control_card = tk.Frame(content, bg=CARD_BG, padx=20, pady=15, highlightthickness=1, highlightbackground=BORDER_COLOR)
         control_card.pack(fill=X, pady=(0, PADDING))
         
         # Subject selection row
-        tk.Label(control_card, text="Subject:", bg=CARD_BG, fg=ACCENT_FG, font=LABEL_FONT).pack(side=LEFT, padx=(0, 10))
+        tk.Label(control_card, text="Subject:", bg=CARD_BG, fg=ACCENT_FG, font=("Segoe UI", 11, "bold")).pack(side=LEFT, padx=(0, 10))
         from tkinter import ttk
         self.subject_var = tk.StringVar()
-        self.subject_combo = ttk.Combobox(control_card, textvariable=self.subject_var, state="readonly", width=28, font=("Verdana", 11))
+        self.subject_combo = ttk.Combobox(control_card, textvariable=self.subject_var, state="readonly", width=28, font=("Segoe UI", 11))
         self.subject_combo.pack(side=LEFT, padx=(0, 20))
         self.subject_combo.bind("<<ComboboxSelected>>", self.on_subject_select)
         
         # Action buttons in control bar
         view_btn = tk.Button(
             control_card,
-            text="📊 View",
+            text="📊 View Report",
             command=self.view_attendance,
             bd=0,
-            font=("Verdana", 11, "bold"),
+            font=("Segoe UI", 11, "bold"),
             bg=PRIMARY_FG,
             fg=PRIMARY_BG,
             padx=16,
@@ -105,25 +115,27 @@ class ViewAttendanceWindow:
         
         sheets_btn = tk.Button(
             control_card,
-            text="📁 Sheets",
+            text="📁 Open Folder",
             command=self.check_sheets,
             bd=0,
-            font=("Verdana", 11, "bold"),
-            bg=PRIMARY_FG,
-            fg=PRIMARY_BG,
+            font=("Segoe UI", 11, "bold"),
+            bg=CARD_BG,
+            fg=PRIMARY_FG,
             padx=16,
             pady=8,
-            cursor="hand2"
+            cursor="hand2",
+            highlightthickness=1,
+            highlightbackground=BORDER_COLOR
         )
         sheets_btn.pack(side=LEFT, padx=(0, 10))
-        self._add_button_hover(sheets_btn, PRIMARY_FG)
+        self._add_button_hover(sheets_btn, CARD_BG)
         
         reset_btn = tk.Button(
             control_card,
             text="🗑️ Reset",
             command=self.reset_attendance,
             bd=0,
-            font=("Verdana", 11, "bold"),
+            font=("Segoe UI", 11, "bold"),
             bg=DANGER_BG,
             fg="white",
             padx=16,
@@ -133,38 +145,104 @@ class ViewAttendanceWindow:
         reset_btn.pack(side=LEFT)
         self._add_button_hover(reset_btn, DANGER_BG, darken=True)
         
-        # Records section label
-        display_label = tk.Label(
-            content,
+        # Records section with header
+        records_header = tk.Frame(content, bg=PRIMARY_BG)
+        records_header.pack(fill=X, pady=(PADDING, 8))
+        
+        tk.Label(
+            records_header,
             text="📋 Attendance Records",
             bg=PRIMARY_BG,
             fg=PRIMARY_FG,
-            font=("Verdana", 14, "bold"),
+            font=("Segoe UI", 14, "bold"),
+        ).pack(side=LEFT)
+        
+        # Subject info label
+        self.subject_info_label = tk.Label(
+            records_header,
+            text="",
+            bg=PRIMARY_BG,
+            fg=ACCENT_FG,
+            font=("Segoe UI", 11),
         )
-        display_label.pack(anchor=W, pady=(PADDING, 8))
+        self.subject_info_label.pack(side=LEFT, padx=(20, 0))
         
-        # Create frame for scrollable attendance list
-        frame = tk.Frame(content, bg=CARD_BG)
-        frame.pack(fill=BOTH, expand=True)
-        
-        # Scrollbar
-        scrollbar = tk.Scrollbar(frame, bg=CARD_BG)
-        scrollbar.pack(side=RIGHT, fill=Y)
-        
-        # Listbox to display students
-        self.attendance_listbox = tk.Listbox(
-            frame,
-            yscrollcommand=scrollbar.set,
-            bg=INPUT_BG,
-            fg=INPUT_FG,
-            font=("Verdana", 11),
-            relief=FLAT,
-            bd=0,
-            selectmode=tk.SINGLE,
-            highlightthickness=0
+        # Total count label
+        self.total_label = tk.Label(
+            records_header,
+            text="",
+            bg=PRIMARY_BG,
+            fg=SUCCESS_BG,
+            font=("Segoe UI", 11, "bold"),
         )
-        self.attendance_listbox.pack(side=LEFT, fill=BOTH, expand=True, padx=2, pady=2)
-        scrollbar.config(command=self.attendance_listbox.yview)
+        self.total_label.pack(side=RIGHT)
+        
+        # Create Treeview for attendance records
+        tree_container = tk.Frame(content, bg=BORDER_COLOR, highlightthickness=1, highlightbackground=BORDER_COLOR)
+        tree_container.pack(fill=BOTH, expand=True)
+        
+        from tkinter import ttk
+        
+        # Style the Treeview
+        style = ttk.Style()
+        style.configure("Attendance.Treeview", 
+            rowheight=40, 
+            background=INPUT_BG, 
+            fieldbackground=INPUT_BG, 
+            foreground=ACCENT_FG, 
+            borderwidth=0, 
+            font=("Segoe UI", 11)
+        )
+        style.configure("Attendance.Treeview.Heading", 
+            background=ACCENT_BG, 
+            foreground=PRIMARY_FG, 
+            font=("Segoe UI", 11, "bold"), 
+            relief="flat"
+        )
+        style.map("Attendance.Treeview.Heading", background=[("active", CARD_BG)])
+        
+        # Scrollbars
+        style.configure("Sharp.Vertical.TScrollbar",
+            background=CARD_BG,
+            troughcolor=PRIMARY_BG,
+            bordercolor=BORDER_COLOR,
+            arrowcolor=PRIMARY_FG,
+            relief="flat",
+        )
+        style.map("Sharp.Vertical.TScrollbar",
+            background=[("active", INPUT_BG), ("pressed", PRIMARY_FG)],
+            arrowcolor=[("active", HIGHLIGHT), ("pressed", PRIMARY_BG)],
+        )
+        
+        columns = ("enrollment", "name", "date", "time")
+        self.attendance_tree = ttk.Treeview(
+            tree_container, 
+            columns=columns, 
+            show="headings", 
+            style="Attendance.Treeview"
+        )
+        
+        # Configure columns
+        self.attendance_tree.heading("enrollment", text="📋 ENROLLMENT ID")
+        self.attendance_tree.heading("name", text="👤 NAME")
+        self.attendance_tree.heading("date", text="📅 DATE")
+        self.attendance_tree.heading("time", text="⏰ TIME")
+        
+        self.attendance_tree.column("enrollment", width=180, anchor="center")
+        self.attendance_tree.column("name", width=300, anchor="w")
+        self.attendance_tree.column("date", width=150, anchor="center")
+        self.attendance_tree.column("time", width=150, anchor="center")
+        
+        # Add scrollbar
+        vsb = ttk.Scrollbar(tree_container, orient="vertical", command=self.attendance_tree.yview, style="Sharp.Vertical.TScrollbar")
+        self.attendance_tree.configure(yscrollcommand=vsb.set)
+        
+        self.attendance_tree.pack(side=LEFT, fill=BOTH, expand=True)
+        vsb.pack(side=RIGHT, fill=Y)
+        
+        # Alternating row colors
+        self.attendance_tree.tag_configure("odd", background="#0c1825")
+        self.attendance_tree.tag_configure("even", background="#101e2f")
         
         # Populate subjects and load initial attendance data
         self.seed_and_load_subjects()
@@ -199,21 +277,27 @@ class ViewAttendanceWindow:
         self.load_subjects()
     
     def load_attendance_list(self):
-        """Load and display attendance records"""
-        self.attendance_listbox.delete(0, END)
+        """Load and display attendance records in Treeview"""
+        # Clear existing items
+        for item in self.attendance_tree.get_children():
+            self.attendance_tree.delete(item)
+        
+        # Reset labels
+        self.subject_info_label.config(text="")
+        self.total_label.config(text="")
         
         # Use combobox text to ensure selected subject is captured
         subject = (self.subject_combo.get() or "").strip()
         
         if not subject:
-            self.attendance_listbox.insert(END, "📝 Enter a subject name to view attendance...")
+            self.subject_info_label.config(text="Select a subject to view records")
             return
         
         try:
             attendance_files, msg = self.attendance_handler.get_attendance_records(subject)
             
             if len(attendance_files) == 0:
-                self.attendance_listbox.insert(END, f"❌ No records for '{subject}'")
+                self.subject_info_label.config(text=f"No records found for '{subject}'")
                 return
             
             # Load the latest attendance file
@@ -222,28 +306,29 @@ class ViewAttendanceWindow:
             with open(latest_file, 'r') as file:
                 reader = csv.DictReader(file)
                 
-                self.attendance_listbox.insert(END, f"✓ Subject: {subject}")
-                self.attendance_listbox.insert(END, "-" * 70)
-                self.attendance_listbox.insert(END, f"{'Enrollment':<15} {'Name':<30} {'Date':<12} {'Time':<10}")
-                self.attendance_listbox.insert(END, "=" * 70)
+                self.subject_info_label.config(text=f"Subject: {subject}")
                 
                 row_count = 0
                 rows = list(reader)
-                for row in rows:
+                for idx, row in enumerate(rows):
                     enrollment = row.get("Enrollment", "N/A")
                     name = row.get("Name", "N/A")
                     date = row.get("Date", "N/A")
                     time_val = row.get("Time", "N/A")
                     
-                    display_text = f"{enrollment:<15} {name:<30} {date:<12} {time_val:<10}"
-                    self.attendance_listbox.insert(END, display_text)
+                    tag = "odd" if idx % 2 else "even"
+                    self.attendance_tree.insert(
+                        "", 
+                        "end", 
+                        values=(enrollment, name, date, time_val),
+                        tags=(tag,)
+                    )
                     row_count += 1
                 
-                self.attendance_listbox.insert(END, "=" * 70)
-                self.attendance_listbox.insert(END, f"👥 Total Students Marked: {row_count}")
+                self.total_label.config(text=f"👥 Total: {row_count} student{'s' if row_count != 1 else ''}")
         
         except Exception as e:
-            self.attendance_listbox.insert(END, f"⚠️  Error: {str(e)}")
+            self.subject_info_label.config(text=f"⚠️ Error: {str(e)}")
 
     def on_subject_select(self, event=None):
         """When dropdown selection changes, refresh list"""

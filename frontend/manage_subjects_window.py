@@ -9,7 +9,7 @@ from frontend.theme import (
     PRIMARY_BG, PRIMARY_FG, ACCENT_BG, ACCENT_FG, CARD_BG,
     INPUT_BG, INPUT_FG, TITLE_FONT, SUBTITLE_FONT, BUTTON_FONT,
     LABEL_FONT, WINDOW_SIZE, PADDING, APP_BRAND, DANGER_BG,
-    configure_ttk_styles, animate_window_in
+    BORDER_COLOR, HIGHLIGHT, configure_ttk_styles, animate_window_in
 )
 
 class ManageSubjectsWindow:
@@ -54,10 +54,14 @@ class ManageSubjectsWindow:
             configure_ttk_styles(self.window)
         except Exception:
             pass
-        header = tk.Frame(self.window, bg=ACCENT_BG)
+        
+        # Header
+        header = tk.Frame(self.window, bg=ACCENT_BG, height=70)
         header.pack(fill=X)
-        tk.Label(header, text="📚  Manage Subjects", bg=ACCENT_BG, fg=PRIMARY_FG, font=TITLE_FONT).pack(side=LEFT, padx=PADDING, pady=PADDING)
-        tk.Label(header, text="Add or remove subjects", bg=ACCENT_BG, fg="#9fb5d9", font=SUBTITLE_FONT).pack(side=LEFT, padx=PADDING, pady=PADDING)
+        header.pack_propagate(False)
+        
+        header_line = tk.Frame(self.window, bg=PRIMARY_FG, height=2)
+        header_line.pack(fill=X)
         
         # Back button
         back_btn = tk.Button(
@@ -65,26 +69,32 @@ class ManageSubjectsWindow:
             text="← Back",
             command=self.go_back,
             bd=0,
-            font=("Verdana", 12, "bold"),
-            bg=ACCENT_BG,
+            font=("Segoe UI", 11, "bold"),
+            bg=CARD_BG,
             fg=PRIMARY_FG,
             padx=16,
-            pady=6,
-            cursor="hand2"
+            pady=8,
+            cursor="hand2",
+            highlightthickness=1,
+            highlightbackground=BORDER_COLOR,
         )
-        back_btn.pack(side=RIGHT, padx=PADDING, pady=PADDING)
-        self._add_button_hover(back_btn, ACCENT_BG)
+        back_btn.pack(side=LEFT, padx=PADDING*2, pady=15)
+        self._add_button_hover(back_btn, CARD_BG)
+        
+        # Title
+        tk.Label(header, text="📚  Manage Subjects", bg=ACCENT_BG, fg=PRIMARY_FG, font=TITLE_FONT).pack(side=LEFT, padx=PADDING)
+        tk.Label(header, text="│ Add or remove subjects", bg=ACCENT_BG, fg="#8899aa", font=("Segoe UI", 12)).pack(side=LEFT, padx=10)
 
         # Center container
         center_frame = tk.Frame(self.window, bg=PRIMARY_BG)
         center_frame.pack(expand=True, fill=BOTH)
         
         # Main card (centered)
-        card = tk.Frame(center_frame, bg=CARD_BG, padx=50, pady=35)
+        card = tk.Frame(center_frame, bg=CARD_BG, padx=50, pady=35, highlightthickness=1, highlightbackground=BORDER_COLOR)
         card.place(relx=0.5, rely=0.45, anchor=CENTER)
         
         # Card title
-        tk.Label(card, text="Subject Management", bg=CARD_BG, fg=PRIMARY_FG, font=("Verdana", 20, "bold")).pack(pady=(0, 25))
+        tk.Label(card, text="Subject Management", bg=CARD_BG, fg=PRIMARY_FG, font=("Segoe UI", 20, "bold")).pack(pady=(0, 25))
         
         # Two column layout
         columns = tk.Frame(card, bg=CARD_BG)
@@ -94,8 +104,8 @@ class ManageSubjectsWindow:
         left = tk.Frame(columns, bg=CARD_BG)
         left.pack(side=LEFT, padx=(0, 50))
         
-        tk.Label(left, text="Existing Subjects", bg=CARD_BG, fg=ACCENT_FG, font=SUBTITLE_FONT).pack(anchor=W, pady=(0, 10))
-        self.subject_combo = ttk.Combobox(left, textvariable=self.subject_var, state="readonly", width=25, font=("Verdana", 11))
+        tk.Label(left, text="Existing Subjects", bg=CARD_BG, fg=ACCENT_FG, font=("Segoe UI", 12, "bold")).pack(anchor=W, pady=(0, 10))
+        self.subject_combo = ttk.Combobox(left, textvariable=self.subject_var, state="readonly", width=25, font=("Segoe UI", 11))
         self.subject_combo.pack(anchor=W, pady=(0, 15))
         self.subject_combo.bind("<<ComboboxSelected>>", self.on_select_subject)
         
@@ -104,7 +114,7 @@ class ManageSubjectsWindow:
         
         self.remove_btn = tk.Button(
             btns, text="🗑️ Remove", command=self.on_remove_subject,
-            bd=0, font=("Verdana", 11, "bold"), bg=DANGER_BG, fg="white",
+            bd=0, font=("Segoe UI", 11, "bold"), bg=DANGER_BG, fg="white",
             padx=16, pady=8, cursor="hand2"
         )
         self.remove_btn.pack(side=LEFT, padx=(0, 10))
@@ -112,7 +122,7 @@ class ManageSubjectsWindow:
         
         open_btn = tk.Button(
             btns, text="📂 Open Folder", command=self.on_open_folder,
-            bd=0, font=("Verdana", 11, "bold"), bg=PRIMARY_FG, fg=PRIMARY_BG,
+            bd=0, font=("Segoe UI", 11, "bold"), bg=PRIMARY_FG, fg=PRIMARY_BG,
             padx=16, pady=8, cursor="hand2"
         )
         open_btn.pack(side=LEFT)
@@ -122,13 +132,13 @@ class ManageSubjectsWindow:
         right = tk.Frame(columns, bg=CARD_BG)
         right.pack(side=LEFT)
         
-        tk.Label(right, text="Add New Subject", bg=CARD_BG, fg=ACCENT_FG, font=SUBTITLE_FONT).pack(anchor=W, pady=(0, 10))
-        self.new_subject_entry = tk.Entry(right, bd=0, bg=INPUT_BG, fg=INPUT_FG, font=("Verdana", 12), relief=FLAT, width=22, textvariable=self.new_subject_var, insertbackground=INPUT_FG)
-        self.new_subject_entry.pack(anchor=W, pady=(0, 15), ipady=8)
+        tk.Label(right, text="Add New Subject", bg=CARD_BG, fg=ACCENT_FG, font=("Segoe UI", 12, "bold")).pack(anchor=W, pady=(0, 10))
+        self.new_subject_entry = tk.Entry(right, bd=0, bg=INPUT_BG, fg=INPUT_FG, font=("Segoe UI", 11), relief=FLAT, width=22, textvariable=self.new_subject_var, insertbackground=INPUT_FG, highlightthickness=1, highlightbackground=BORDER_COLOR, highlightcolor=PRIMARY_FG)
+        self.new_subject_entry.pack(anchor=W, pady=(0, 15), ipady=10)
         
         add_btn = tk.Button(
             right, text="➕ Add Subject", command=self.on_add_subject,
-            bd=0, font=("Verdana", 11, "bold"), bg=PRIMARY_FG, fg=PRIMARY_BG,
+            bd=0, font=("Segoe UI", 11, "bold"), bg=PRIMARY_FG, fg=PRIMARY_BG,
             padx=16, pady=8, cursor="hand2"
         )
         add_btn.pack(anchor=W)
@@ -137,7 +147,7 @@ class ManageSubjectsWindow:
         # Status bar at bottom of card
         self.status = tk.Label(
             card, text="Select a subject to manage", bg=INPUT_BG, fg=PRIMARY_FG,
-            font=("Verdana", 11), relief=FLAT, height=2, anchor=W, padx=12
+            font=("Segoe UI", 11), relief=FLAT, height=2, anchor=W, padx=12
         )
         self.status.pack(fill=X, pady=(25, 0))
 

@@ -8,7 +8,8 @@ from frontend.theme import (
     PRIMARY_BG, PRIMARY_FG, ACCENT_BG, ACCENT_FG,
     SUCCESS_BG, CARD_BG, INPUT_BG, INPUT_FG, DANGER_BG,
     TITLE_FONT, SUBTITLE_FONT, BUTTON_FONT, LABEL_FONT,
-    WINDOW_SIZE, PADDING, BUTTON_SIZE, APP_BRAND, configure_ttk_styles, animate_window_in,
+    WINDOW_SIZE, PADDING, BUTTON_SIZE, APP_BRAND, BORDER_COLOR, HIGHLIGHT,
+    configure_ttk_styles, animate_window_in,
 )
 
 class AttendanceWindow:
@@ -56,12 +57,14 @@ class AttendanceWindow:
             configure_ttk_styles(self.window)
         except Exception:
             pass
-        header = tk.Frame(self.window, bg=ACCENT_BG)
+        
+        # Header
+        header = tk.Frame(self.window, bg=ACCENT_BG, height=70)
         header.pack(fill=X)
-        title = tk.Label(header, text="📸✔️  Take Attendance", bg=ACCENT_BG, fg=PRIMARY_FG, font=TITLE_FONT)
-        title.pack(side=LEFT, padx=PADDING, pady=PADDING)
-        subtitle = tk.Label(header, text="Select a subject, then start session", bg=ACCENT_BG, fg="#9fb5d9", font=SUBTITLE_FONT)
-        subtitle.pack(side=LEFT, padx=PADDING, pady=PADDING)
+        header.pack_propagate(False)
+        
+        header_line = tk.Frame(self.window, bg=PRIMARY_FG, height=2)
+        header_line.pack(fill=X)
         
         # Back button
         back_btn = tk.Button(
@@ -69,26 +72,32 @@ class AttendanceWindow:
             text="← Back",
             command=self.go_back,
             bd=0,
-            font=("Verdana", 12, "bold"),
-            bg=ACCENT_BG,
+            font=("Segoe UI", 11, "bold"),
+            bg=CARD_BG,
             fg=PRIMARY_FG,
             padx=16,
-            pady=6,
-            cursor="hand2"
+            pady=8,
+            cursor="hand2",
+            highlightthickness=1,
+            highlightbackground=BORDER_COLOR,
         )
-        back_btn.pack(side=RIGHT, padx=PADDING, pady=PADDING)
-        self._add_button_hover(back_btn, ACCENT_BG)
+        back_btn.pack(side=LEFT, padx=PADDING*2, pady=15)
+        self._add_button_hover(back_btn, CARD_BG)
+        
+        # Title
+        tk.Label(header, text="📸  Take Attendance", bg=ACCENT_BG, fg=PRIMARY_FG, font=TITLE_FONT).pack(side=LEFT, padx=PADDING)
+        tk.Label(header, text="│ Select subject and start session", bg=ACCENT_BG, fg="#8899aa", font=("Segoe UI", 12)).pack(side=LEFT, padx=10)
         
         # Center container
         center_frame = tk.Frame(self.window, bg=PRIMARY_BG)
         center_frame.pack(expand=True, fill=BOTH)
         
         # Card container (centered)
-        card = tk.Frame(center_frame, bg=CARD_BG, padx=50, pady=35)
+        card = tk.Frame(center_frame, bg=CARD_BG, padx=50, pady=35, highlightthickness=1, highlightbackground=BORDER_COLOR)
         card.place(relx=0.5, rely=0.45, anchor=CENTER)
         
         # Card title
-        tk.Label(card, text="Attendance Session", bg=CARD_BG, fg=PRIMARY_FG, font=("Verdana", 20, "bold")).pack(pady=(0, 25))
+        tk.Label(card, text="Attendance Session", bg=CARD_BG, fg=PRIMARY_FG, font=("Segoe UI", 20, "bold")).pack(pady=(0, 25))
         
         # Two column layout
         columns = tk.Frame(card, bg=CARD_BG)
@@ -98,11 +107,11 @@ class AttendanceWindow:
         left = tk.Frame(columns, bg=CARD_BG)
         left.pack(side=LEFT, padx=(0, 40))
         
-        tk.Label(left, text="Subject", bg=CARD_BG, fg=ACCENT_FG, font=SUBTITLE_FONT).pack(anchor=W, pady=(0, 8))
+        tk.Label(left, text="Subject", bg=CARD_BG, fg=ACCENT_FG, font=("Segoe UI", 12, "bold")).pack(anchor=W, pady=(0, 8))
         
         from tkinter import ttk
         self.subject_var = tk.StringVar()
-        self.subject_combo = ttk.Combobox(left, textvariable=self.subject_var, state="readonly", width=28, font=("Verdana", 11))
+        self.subject_combo = ttk.Combobox(left, textvariable=self.subject_var, state="readonly", width=28, font=("Segoe UI", 11))
         self.subject_combo.pack(anchor=W, pady=(0, 12))
         self.subject_combo.bind("<<ComboboxSelected>>", self.on_subject_selected)
         
@@ -111,7 +120,7 @@ class AttendanceWindow:
             text="✅  Confirm Subject",
             command=self.on_confirm_subject,
             bd=0,
-            font=("Verdana", 12),
+            font=("Segoe UI", 11, "bold"),
             bg=ACCENT_BG,
             fg=ACCENT_FG,
             padx=16,
@@ -125,7 +134,7 @@ class AttendanceWindow:
         right = tk.Frame(columns, bg=CARD_BG)
         right.pack(side=LEFT)
         
-        tk.Label(right, text="Status", bg=CARD_BG, fg=ACCENT_FG, font=SUBTITLE_FONT).pack(anchor=W, pady=(0, 8))
+        tk.Label(right, text="Status", bg=CARD_BG, fg=ACCENT_FG, font=("Segoe UI", 12, "bold")).pack(anchor=W, pady=(0, 8))
         
         self.message = tk.Label(
             right,
@@ -133,7 +142,7 @@ class AttendanceWindow:
             bd=0,
             bg=INPUT_BG,
             fg=PRIMARY_FG,
-            font=("Verdana", 12),
+            font=("Segoe UI", 11),
             height=3,
             width=30,
             relief=FLAT,
@@ -151,7 +160,7 @@ class AttendanceWindow:
             text="▶️  Start Attendance",
             command=self.on_start_attendance,
             bd=0,
-            font=BUTTON_FONT,
+            font=("Segoe UI", 12, "bold"),
             bg=PRIMARY_FG,
             fg=PRIMARY_BG,
             padx=24,
@@ -166,7 +175,7 @@ class AttendanceWindow:
             text="⏹️  Stop Attendance",
             command=self.stop_attendance,
             bd=0,
-            font=BUTTON_FONT,
+            font=("Segoe UI", 12, "bold"),
             bg=DANGER_BG,
             fg="white",
             padx=24,
