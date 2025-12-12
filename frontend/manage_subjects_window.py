@@ -9,7 +9,7 @@ from frontend.theme import (
     PRIMARY_BG, PRIMARY_FG, ACCENT_BG, ACCENT_FG, CARD_BG,
     INPUT_BG, INPUT_FG, TITLE_FONT, SUBTITLE_FONT, BUTTON_FONT,
     LABEL_FONT, WINDOW_SIZE, PADDING, APP_BRAND, DANGER_BG,
-    configure_ttk_styles
+    configure_ttk_styles, animate_window_in
 )
 
 class ManageSubjectsWindow:
@@ -31,6 +31,10 @@ class ManageSubjectsWindow:
         self.window.geometry(f"{screen_width}x{screen_height}+0+0")
         self.window.bind('<Escape>', lambda e: self.go_back())  # Back on Escape
         self.window.protocol("WM_DELETE_WINDOW", self.go_back)
+        try:
+            animate_window_in(self.window)
+        except Exception:
+            pass
 
         self.subject_var = tk.StringVar()
         self.new_subject_var = tk.StringVar()
