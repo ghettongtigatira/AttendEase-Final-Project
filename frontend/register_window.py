@@ -9,7 +9,7 @@ from frontend.theme import (
     PRIMARY_BG, PRIMARY_FG, ACCENT_BG, ACCENT_FG, CARD_BG,
     INPUT_BG, INPUT_FG, TITLE_FONT, SUBTITLE_FONT, BUTTON_FONT,
     LABEL_FONT, WINDOW_SIZE, PADDING, APP_BRAND, SUCCESS_BG, DANGER_BG,
-    configure_ttk_styles
+    configure_ttk_styles, animate_window_in
 )
 import os
 
@@ -40,6 +40,10 @@ class RegisterWindow:
         self.window.geometry(f"{screen_width}x{screen_height}+0+0")
         self.window.bind('<Escape>', lambda e: self.go_back())  # Back on Escape
         self.window.protocol("WM_DELETE_WINDOW", self.go_back)
+        try:
+            animate_window_in(self.window)
+        except Exception:
+            pass
         
         self.setup_ui()
         self.load_subjects()
@@ -125,12 +129,12 @@ class RegisterWindow:
         self.subject_combo.pack(side=LEFT, padx=(0, 10))
         
         # Add subject button
-        add_subject_btn = tk.Button(subject_row, text="+ Add", command=self.add_subject_to_list, bd=0, font=("Verdana", 10, "bold"), bg=PRIMARY_FG, fg=PRIMARY_BG, padx=12, pady=4, cursor="hand2")
+        add_subject_btn = tk.Button(subject_row, text="➕ Add", command=self.add_subject_to_list, bd=0, font=("Verdana", 10, "bold"), bg=PRIMARY_FG, fg=PRIMARY_BG, padx=12, pady=4, cursor="hand2")
         add_subject_btn.pack(side=LEFT, padx=(0, 10))
         self._add_button_hover(add_subject_btn, PRIMARY_FG)
         
         # Clear all button
-        clear_btn = tk.Button(subject_row, text="Clear All", command=self.clear_subjects, bd=0, font=("Verdana", 10), bg=ACCENT_BG, fg=ACCENT_FG, padx=10, pady=4, cursor="hand2")
+        clear_btn = tk.Button(subject_row, text="🧹 Clear All", command=self.clear_subjects, bd=0, font=("Verdana", 10), bg=ACCENT_BG, fg=ACCENT_FG, padx=10, pady=4, cursor="hand2")
         clear_btn.pack(side=LEFT)
         self._add_button_hover(clear_btn, ACCENT_BG)
         
